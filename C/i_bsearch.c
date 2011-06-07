@@ -17,8 +17,6 @@ int b_search(int key, int *D, int D_size, int lo, int hi)
 			hi = mid;
 	}
 	
-	printf("%d\n", i);
-
 	return hi;
 }
 
@@ -90,22 +88,44 @@ int main(int argc, char *argv[])
 		int lo = -1, hi = d;
 		I[ j - 1 ] = D[ ( j*hi + (i - j)*lo ) / i];
 	}
+	
+	int *T = (int *) malloc(i * sizeof(int));
+	for (j = 0; j < i; j++) {
+		int lo = -1, hi = d;
+		int row = log(j+1) / log(2);
+		int num_prev = pow(2, row) - 1;
+		int row_j = j - num_prev;
+		int hi_v = 2*row_j + 1;
+		int lo_v = pow(2, row+1) - (2*row_j + 1);
+		int d_j = (hi_v*hi + lo_v*lo) / pow(2,row + 1);
+		T[ j ] = D[ d_j ];
+	}
+
+	/*
+	for (j = 0; j < i; j++) {
+		int lo = -1, hi = d;
+		int x = (j*hi + (i - j)*lo)/i;
+		printf("%d\tI:%d\tT:%d\tD:%d\n", 
+				j, I[j], T[j],
+				D[j]);
+	}
+	*/
+
 
 	unsigned long bs = 0;
 	unsigned long is = 0;
 	int w = 0;
 
 	/* Search list */
+	/*
 	for (j = 0; j < q; j++) {
 
-		printf("b:\n");
 		int r = rand();
 		start();
 		int a = b_search(r, D, d, -1, d);
 		stop();
 		bs += report();
 
-		printf("i:\n");
 		start();
 		int b = i_b_search(r, D, d, I, i);
 		stop();
@@ -116,6 +136,7 @@ int main(int argc, char *argv[])
 	}
 
 	printf("%lu\t%lu\t%f\n", bs, is, (((double)bs) / ((double)is)) );
+	*/
 
 	return 0;
 }
