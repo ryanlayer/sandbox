@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
 	}
 	int D_size = atoi(argv[1]); // size of data set D
 	int Q_size = atoi(argv[2]); // size of query set Q
-	int I_size = atoi(argv[3]); // size of index I
+	int T_size = atoi(argv[3]); // size of index I
 	int seed = atoi(argv[4]);
 
 	srand(seed);
@@ -31,10 +31,10 @@ int main(int argc, char *argv[])
 		printf("%d\t%d\n", j, D[j]);
 	*/
 
-	int *I = (int *) malloc(I_size * sizeof(int));
+	int *T = (int *) malloc(T_size * sizeof(int));
 
-	for (j = 0; j < I_size; j++) 
-		I[ j ] = D[ i_to_I(j,I_size,D_size) ];
+	for (j = 0; j < T_size; j++) 
+		T[ j ] = D[ i_to_T(j,T_size,D_size) ];
 
 	/* PRINT TREE and INDEX
 	for (j = 0; j < d; j++)
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 		int r = rand();
 
 		start();
-		int c = i_b_search(r, D, D_size, I, I_size);
+		int c = t_b_search(r, D, D_size, T, T_size);
 		stop();
 		total_time += report();
 		times[j] = report();
