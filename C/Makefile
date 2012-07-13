@@ -9,3 +9,6 @@ t_bsearch: t_bsearch.o timer.o bsearch_lib.o
 
 bsearch: bsearch.o timer.o bsearch_lib.o
 	gcc -o bsearch bsearch.o timer.o bsearch_lib.o -lm
+
+rand_chr: rand_chr.c 
+	gcc -o rand_chr rand_chr.c lib/mt/mt.c -lm -Ilib/mt
