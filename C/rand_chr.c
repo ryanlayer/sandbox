@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
 	for (i=0; i<n; i++) {
 		char c[6];
 		unsigned int start, end;
-		rand_human_interval(100, c, &start, &end);
+		rand_human_interval(500, c, &start, &end);
 		printf("%s\t%u\t%u\n", c, start, end);
 	}
 }
