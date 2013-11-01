@@ -119,13 +119,18 @@ void rand_human_interval(unsigned int len,
 int main(int argc, char **argv) {
 
 	if (argc < 2) {
-		fprintf(stderr, "%s N\n", argv[0]);
+		fprintf(stderr, "%s N seed\n", argv[0]);
 		return 1;
 	}
 
 	int n = atoi(argv[1]);
 
-	init_genrand((unsigned) time(NULL));
+	if (argc == 3) {
+		init_genrand((unsigned) atoi(argv[2]));
+	} else {
+		init_genrand((unsigned) time(NULL));
+	}
+
 	int i;
 	for (i=0; i<n; i++) {
 		char c[6];
