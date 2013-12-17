@@ -4,25 +4,33 @@ import threading
 import Queue
 import time, random
 import sys
-from subprocess import Popen, PIPE
+import contextlib
+import subprocess
+#from subprocess import Popen, PIPE
 
 parser = OptionParser()
 
 parser.add_option("-w",
     "--wait",
-    dest="wait",
+    dest="wait_time",
     type="float",
-    help="Poll wait time")
+    default=0.25,
+    help="Poll wait time in seconds (Default 0.25)")
 
 parser.add_option("-c",
     "--cmd",
     dest="cmds",
     help="Comma seperated list of commands")
 
-(options, args) = parser.parse_args()
+parser.add_option("-b",
+    "--buf",
+    dest="buf",
+    default=10,
+    type="int",
+    help="Thread output buffer size (Default 10)")
 
-if not options.wait:
-    parser.error('Wait time not given')
+
+(options, args) = parser.parse_args()
 
 if not options.cmds:
     parser.error('Commands not given')
@@ -35,35 +43,13 @@ class Worker(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        #arg1 = [sys.executable, "-u"]
-        #arg1 = [sys.executable, "-u"]
-        #arg1 = ["/bin/ls","-1"]
-        #arg1 = [sys.executable, "-u"]
-        #arg1.extend(self.cmd)
-#        arg1_t = [sys.executable, "-u", 
-#            "./dum.py", "-i","1", \
-#                    "-w", "0.5", \
-#                    "-o", "5", \
-#                    "-t", "10"]
-#        proc = Popen([sys.executable, "-u", 
-#            "./dum.py", "-i","1", \
-#                    "-w", "0.5", \
-#                    "-o", "5", \
-#                    "-t", "10"],\
-#            stdout=PIPE, bufsize=1)
-
-        proc = Popen(self.cmd, stdout=PIPE, bufsize=1)
-        #proc = Popen(self.cmd, stdout=PIPE, bufsize=1).stdout
-
+        proc = subprocess.Popen(self.cmd, stdout=subprocess.PIPE)
 
         buff = []
-        buff_size = 3
-        #for line in iter(proc.stdout.readline, b''):
-        #for line in iter(proc.readline, b''):
+        buff_size = options.buf 
         while True:
             line = proc.stdout.readline()
             if not line: break
-            print "XX"
             if (len(buff) < buff_size):
                 buff.append(line.rstrip())
             else:
@@ -84,12 +70,10 @@ while threading.active_count() > 1:
     while (queue.qsize() > 0): 
         for o in queue.get():
             print o
-        print "--"
-    time.sleep(0.25)
+    time.sleep(options.wait_time)
 
 while (queue.qsize() > 0): 
     for o in queue.get():
         print o
-    print "~~"
-    time.sleep(0.25)
+    time.sleep(options.wait_time)
  
