@@ -31,5 +31,40 @@ rand_chr: rand_chr.c
 log_space_test: log_space_test.c log_space.c log_space.h
 	gcc -o log_space_test log_space_test.c log_space.c -lm
 
+pool_ex: pool_ex.c cthreadpool/threadpool.c
+	gcc -o pool_ex pool_ex.c cthreadpool/threadpool.c -I cthreadpool/
+
+pool_q: pool_q.c cthreadpool/threadpool.c
+	gcc -o pool_q pool_q.c cthreadpool/threadpool.c -I cthreadpool/
+
+q_tails: q_tails.c 
+	gcc -g -o q_tails q_tails.c
+
+q_tails_thread: q_tails_thread.c cthreadpool/threadpool.c
+	gcc -g -o q_tails_thread q_tails_thread.c cthreadpool/threadpool.c -I cthreadpool/
+
+p_q: p_q.c 
+	gcc -g -o p_q p_q.c
+
+grabix:
+	g++ -g -o grabix_test grabix_test.cpp -I/Users/rl6sf/src/grabix /Users/rl6sf/src/grabix/grabix.cpp /Users/rl6sf/src/grabix/bgzf.c -lstdc++ -lz
+
 test:
 	echo $(ALL_C)
+%: %.c timer.c
+	gcc -o $@ $^ -O3
+
+sse_gt_sum: sse_gt_sum.c
+	gcc -o sse_gt_sum sse_gt_sum.c timer.c -O3
+
+avx: avx.c
+	gcc -mavx -mavx2 -o avx avx.c
+
+avx_test: avx_test.c
+	gcc -mavx -mavx2 -o avx_test avx_test.c
+
+bit_op_sum: bit_op_sum.c
+	gcc -mavx -mavx2 -o bit_op_sum bit_op_sum.c timer.c -g
+
+pull_32_from_31: pull_32_from_31.c
+	gcc -o pull_32_from_31 pull_32_from_31.c
