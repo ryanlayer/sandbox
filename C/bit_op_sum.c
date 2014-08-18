@@ -42,7 +42,14 @@ int main(int argc, char** argv)
     R3 = (unsigned int *) malloc ( N *32* sizeof(unsigned int));
     R4 = (unsigned int *) malloc ( N *32* sizeof(unsigned int));
 
-    __declspec(align(64)) unsigned int *R5 = (unsigned int *) malloc ( N *32* sizeof(unsigned int));
+    //__declspec(align(32)) unsigned int *R5 = (unsigned int *) malloc ( N *32* sizeof(unsigned int));
+    unsigned int *R5;
+    int r = posix_memalign((void **)&R5, 32, N *32* sizeof(unsigned int));
+
+    fprintf(stderr, "r:%d\n", r);
+
+
+    //unsigned int *R5 = (unsigned int *)_mm_malloc(N*32*sizeof(unsigned int), 32);
 
     unsigned int i,j,l;
     float t1 = 0, t2 = 0, t3 = 0;
@@ -145,7 +152,7 @@ int main(int argc, char** argv)
         __m256i s_4 = _mm256_load_si256(rshift_4_avx);
 
         __m256i m = _mm256_load_si256(masks_avx);
-        __m256i y1, y2, y3;
+        __m256i y1, y2, y3, r1, r2, r3, r4;
 
         for (i = 0; i < N-1; ++i) {
             y1 = _mm256_set1_epi32(I[i]);
@@ -153,18 +160,22 @@ int main(int argc, char** argv)
             y2 = _mm256_srlv_epi32 (y1, s_1);
             y3 = _mm256_and_si256 (y2, m);
             R5_avx[3+i*4] = _mm256_add_epi32 (R5_avx[3+i*4], y3);
+            //R5_avx[3+i*4]= _mm256_add_epi32 (r1, y3);
 
             y2 = _mm256_srlv_epi32 (y1, s_2);
             y3 = _mm256_and_si256 (y2, m);
             R5_avx[2+i*4] = _mm256_add_epi32 (R5_avx[2+i*4], y3);
+            //R5_avx[2+i*4] = _mm256_add_epi32 (r1, y3);
 
             y2 = _mm256_srlv_epi32 (y1, s_3);
             y3 = _mm256_and_si256 (y2, m);
             R5_avx[1+i*4] = _mm256_add_epi32 (R5_avx[1+i*4], y3);
+            //R5_avx[1+i*4]= _mm256_add_epi32 (r1, y3);
 
             y2 = _mm256_srlv_epi32 (y1, s_4);
             y3 = _mm256_and_si256 (y2, m);
             R5_avx[0+i*4] = _mm256_add_epi32 (R5_avx[0+i*4], y3);
+            //R5_avx[0+i*4] = _mm256_add_epi32 (r1, y3);
         }
         stop();
         t5+=report();
@@ -178,4 +189,5 @@ int main(int argc, char** argv)
             printf("%u\t%u\t%u\t%u\n",i,R1[i],R2[i],R5[i]);
     }
 
+    _mm_free(R5);
 }
