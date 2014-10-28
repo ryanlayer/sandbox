@@ -4,6 +4,8 @@ GSL_INCLUDE=-I/sw/include/ \
 			-I/sw/include/gsl
 GSL_LINK=-L/sw/lib/
 
+all:
+
 gsl_cdf_gaussian_P: gsl_cdf_gaussian_P.c
 	gcc $(GSL_INCLUDE) \
 		$(GSL_LINK) \
@@ -68,3 +70,32 @@ bit_op_sum: bit_op_sum.c
 
 pull_32_from_31: pull_32_from_31.c
 	gcc -o pull_32_from_31 pull_32_from_31.c
+
+avx_bed_intersect: avx_bed_intersect.c
+	gcc -mavx -o avx_bed_intersect avx_bed_intersect.c
+
+bcf_test: bcf_test.c
+	gcc -g -I ~/src/htslib -o bcf_test bcf_test.c ~/src/htslib/hts.c -lz \
+	    -DSAMTOOLS=1 ~/src/htslib/libhts.a
+
+bcf_pool: bcf_pool.c
+	gcc -g -I ~/src/htslib -o bcf_pool bcf_pool.c ~/src/htslib/hts.c -lz \
+	    timer.c pq.c -DSAMTOOLS=1 ~/src/htslib/libhts.a
+
+bcf_seq: bcf_seq.c
+	gcc -g -I ~/src/htslib -o bcf_seq bcf_seq.c ~/src/htslib/hts.c -lz \
+	    timer.c pq.c -DSAMTOOLS=1 ~/src/htslib/libhts.a
+
+hdf5_test: hdf5_test.c
+	gcc -I$(HOME)/src/hdf5-1.8.7-mac-intel-x86_64-static/include \
+	    -L$(HOME)/src/hdf5-1.8.7-mac-intel-x86_64-static/lib \
+	    -lhdf5 -lz -lsz \
+	    -o hdf5_test \
+	    hdf5_test.c
+
+h5_cmprss: h5_cmprss.c
+	gcc -I$(HOME)/src/hdf5-1.8.7-mac-intel-x86_64-static/include \
+	    -L$(HOME)/src/hdf5-1.8.7-mac-intel-x86_64-static/lib \
+	    -lhdf5 -lz -lsz \
+	    -o h5_cmprss \
+	    h5_cmprss.c
