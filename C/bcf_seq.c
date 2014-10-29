@@ -9,8 +9,14 @@
 int main(int argc, char **argv)
 {
 
+    if (argc < 3) {
+        fprintf(stderr,"%s <bcf file> <num vars>\n", argv[0]);
+        return 1;
+    }
+
+
     char *fname = argv[1];
-    uint32_t num_inds = atoi(argv[2]);
+    uint32_t num_vars = atoi(argv[2]);
 
     htsFile *fp    = hts_open(fname,"rb");
     bcf_hdr_t *hdr = bcf_hdr_read(fp);
@@ -22,18 +28,18 @@ int main(int argc, char **argv)
     
     int32_t i, j, k, ntmp = 0, int_i = 0, two_bit_i = 0, sum, t_sum = 0;
 
-    uint32_t num_ints = 1 + ((num_inds - 1) / 16);
+    uint32_t num_ints = 1 + ((num_records - 1) / 16);
 
     pri_queue q = priq_new(0);
     priority p;
 
-    fprintf(stderr, "num_inds:%u\t num_ints:%u\n", num_inds, num_ints);
+    fprintf(stderr, "num_records:%u\t num_ints:%u\n", num_records, num_ints);
     uint32_t *packed_ints = (uint32_t *) calloc(num_ints, sizeof(uint32_t));
 
     FILE *gt_of = fopen("gt.tmp.packed","wb");
     FILE *md_of = fopen("md.tmp.packed","w");
 
-    uint32_t *md_index = (uint32_t *) malloc(num_records * sizeof(uint32_t));
+    uint32_t *md_index = (uint32_t *) malloc(num_vars * sizeof(uint32_t));
     uint32_t md_i = 0;
 
     unsigned long t_bcf_read = 0, 
@@ -46,7 +52,7 @@ int main(int argc, char **argv)
                   t_get_md = 0,
                   t_md_write = 0,
                   t_pack = 0;
-    for (i = 0; i < num_records; ++i) {
+    for (i = 0; i < num_vars; ++i) {
         sum = 0;
         int_i = 0;
 

@@ -79,7 +79,7 @@ bcf_test: bcf_test.c
 	    -DSAMTOOLS=1 ~/src/htslib/libhts.a
 
 bcf_pool: bcf_pool.c
-	gcc -g -I ~/src/htslib -o bcf_pool bcf_pool.c ~/src/htslib/hts.c -lz \
+	gcc -O3 -I ~/src/htslib -o bcf_pool bcf_pool.c ~/src/htslib/hts.c -lz \
 	    timer.c pq.c -DSAMTOOLS=1 ~/src/htslib/libhts.a
 
 bcf_seq: bcf_seq.c
