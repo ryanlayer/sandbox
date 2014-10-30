@@ -22,12 +22,10 @@ int nlz1(unsigned x)
 
 int main(int argc, char **argv)
 {
-
     if (argc < 3) {
         fprintf(stderr,"%s <bcf file> <num vars>\n", argv[0]);
         return 1;
     }
-
 
     char *fname = argv[1];
     uint32_t num_vars = atoi(argv[2]);
@@ -107,7 +105,8 @@ int main(int argc, char **argv)
                                                         &ntmp);
         num_gts_per_sample /= num_inds;
         int32_t *gt_i = gt_p;
-
+        
+        // Pack genotypes
         for (j = 0; j < num_inds; ++j) {
             uint32_t gt = 0;
             for (k = 0; k < num_gts_per_sample; ++k) {
@@ -125,8 +124,9 @@ int main(int argc, char **argv)
             gt_i += num_gts_per_sample;
         }
 
+        // Get a priority for the variant based on the sum and number of 
+        // leading zeros
         p.sum = sum;
-
         uint32_t prefix_len = 0;
         j = 0;
         while ((j < num_ind_ints) && (packed_ints[j] == 0)){
@@ -136,12 +136,15 @@ int main(int argc, char **argv)
         if (j < num_ind_ints)
             prefix_len += nlz1(packed_ints[j]);
         
+        // Push it into the q
         p.len = prefix_len;
         int *j = (int *) malloc (sizeof(int));
         j[0] = i;
         priq_push(q, j, p);
 
+        // Write to file
         fwrite(packed_ints, sizeof(uint32_t), num_ind_ints,gt_of);
+
         memset(packed_ints, 0, num_ind_ints*sizeof(uint32_t));
 
         t_sum += sum;
@@ -158,6 +161,7 @@ int main(int argc, char **argv)
     gt_of = fopen("gt.tmp.packed","rb");
     FILE *s_gt_of = fopen("s.gt.tmp.packed","wb");
 
+    // Get variants in order and rewrite a variant-major sorted matrix
     while ( priq_top(q, &p) != NULL ) {
         int *d = priq_pop(q, &p);
 
@@ -206,6 +210,8 @@ int main(int argc, char **argv)
     s_gt_of = fopen("s.gt.tmp.packed","rb");
     FILE *rs_gt_of = fopen("r.s.gt.tmp.packed","wb");
 
+    // Write these to values to that this is a well-formed uncompressed 
+    // packed int binary file (ubin) file
     fwrite(&num_vars, sizeof(uint32_t), 1, rs_gt_of);
     fwrite(&num_inds, sizeof(uint32_t), 1, rs_gt_of);
      
@@ -217,8 +223,6 @@ int main(int argc, char **argv)
      *  i: cols in var-major form, rows in ind-major form
      *  j: rows in var-major form, cols in ind-major form
      */
-
-
     uint32_t num_inds_to_write = num_inds;
     for (i = 0; i < num_ind_ints; ++i) { // loop over each int col
         for (j = 0; j < num_vars; ++j) { // loop over head row in that col
@@ -244,6 +248,8 @@ int main(int argc, char **argv)
             }
         }
 
+        // When we are at the end of the file, and the number of lines 
+        // is not a factor of 16, only write out the lines that contain values
         if (num_inds_to_write >= 16) {
             fwrite(I_data,
                    sizeof(uint32_t),
