@@ -6,6 +6,20 @@
 #include "timer.h"
 #include "pq.h"
 
+int nlz1(unsigned x)
+{
+    int n;
+
+    if (x == 0) return(32);
+    n = 0;
+    if (x <= 0x0000FFFF) {n = n +16; x = x <<16;}
+    if (x <= 0x00FFFFFF) {n = n + 8; x = x << 8;}
+    if (x <= 0x0FFFFFFF) {n = n + 4; x = x << 4;}
+    if (x <= 0x3FFFFFFF) {n = n + 2; x = x << 2;}
+    if (x <= 0x7FFFFFFF) {n = n + 1;}
+    return n;
+}
+
 int main(int argc, char **argv)
 {
 
@@ -23,18 +37,17 @@ int main(int argc, char **argv)
     bcf1_t *line    = bcf_init1();
     int32_t *gt_p = NULL;
 
-    uint32_t num_records = bcf_hdr_nsamples(hdr);
-    printf("num_records:%u\n", num_records);
+    uint32_t num_inds = bcf_hdr_nsamples(hdr);
     
     int32_t i, j, k, ntmp = 0, int_i = 0, two_bit_i = 0, sum, t_sum = 0;
 
-    uint32_t num_ints = 1 + ((num_records - 1) / 16);
+    uint32_t num_ind_ints = 1 + ((num_inds - 1) / 16);
 
     pri_queue q = priq_new(0);
     priority p;
 
-    fprintf(stderr, "num_records:%u\t num_ints:%u\n", num_records, num_ints);
-    uint32_t *packed_ints = (uint32_t *) calloc(num_ints, sizeof(uint32_t));
+    uint32_t *packed_ints = (uint32_t *) calloc(num_ind_ints,
+                                                sizeof(uint32_t));
 
     FILE *gt_of = fopen("gt.tmp.packed","wb");
     FILE *md_of = fopen("md.tmp.packed","w");
@@ -52,30 +65,21 @@ int main(int argc, char **argv)
                   t_get_md = 0,
                   t_md_write = 0,
                   t_pack = 0;
+
     for (i = 0; i < num_vars; ++i) {
         sum = 0;
         int_i = 0;
+        two_bit_i = 0;
 
-        // Read
-        start();
         int r = bcf_read(fp, hdr, line);
-        stop();
-        t_bcf_read += report();
         
         // Copy
-        start();
         bcf1_t *t_line = bcf_dup(line);
-        stop();
-        t_bcf_dup += report();
 
         // Unpack
-        start();
         bcf_unpack(t_line, BCF_UN_ALL);
-        stop();
-        t_bcf_unpack += report();
 
         // Get metadata
-        start();
         size_t len = strlen(bcf_hdr_id2name(hdr, t_line->rid)) +
                      10 + // max length of pos
                      strlen(t_line->d.id) +
@@ -90,36 +94,21 @@ int main(int argc, char **argv)
                      t_line->d.id,
                      t_line->d.allele[0],
                      t_line->d.allele[1]); 
-        stop();
-        t_get_md += report();
 
         // Write metadata
-        start();
         md_i += strlen(md);
         md_index[i] = md_i;
-        //fwrite(md, sizeof(char), len, md_of);
         fprintf(md_of, "%s", md);
-        stop();
-        t_md_write += report();
 
         // Get gentotypes
-        start();
         uint32_t num_gts_per_sample = bcf_get_genotypes(hdr,
                                                         t_line,
                                                         &gt_p,
                                                         &ntmp);
-        stop();
-        t_bcf_get_genotypes += report();
-
-        start();
-        uint32_t num_samples = bcf_hdr_nsamples(hdr);
-        stop();
-        t_bcf_hdr_nsamples += report();
-        num_gts_per_sample /= num_samples;
+        num_gts_per_sample /= num_inds;
         int32_t *gt_i = gt_p;
 
-        start();
-        for (j = 0; j < num_samples; ++j) {
+        for (j = 0; j < num_inds; ++j) {
             uint32_t gt = 0;
             for (k = 0; k < num_gts_per_sample; ++k) {
                 gt += bcf_gt_allele(gt_i[k]);
@@ -135,24 +124,25 @@ int main(int argc, char **argv)
             sum += gt;
             gt_i += num_gts_per_sample;
         }
-        stop();
-        t_pack += report();
 
-        start();
         p.sum = sum;
-        p.len = 0;
+
+        uint32_t prefix_len = 0;
+        j = 0;
+        while ((j < num_ind_ints) && (packed_ints[j] == 0)){
+            prefix_len += 32;
+            j += 1;
+        }
+        if (j < num_ind_ints)
+            prefix_len += nlz1(packed_ints[j]);
+        
+        p.len = prefix_len;
         int *j = (int *) malloc (sizeof(int));
         j[0] = i;
         priq_push(q, j, p);
-        stop();
-        t_q += report();
 
-
-        start();
-        fwrite(packed_ints, sizeof(uint32_t), num_ints,gt_of);
-        stop();
-        t_write += report();
-
+        fwrite(packed_ints, sizeof(uint32_t), num_ind_ints,gt_of);
+        memset(packed_ints, 0, num_ind_ints*sizeof(uint32_t));
 
         t_sum += sum;
 
@@ -164,11 +154,12 @@ int main(int argc, char **argv)
 
 
     md_of = fopen("md.tmp.packed","r");
+    FILE *md_out = fopen("md.bim","w");
+    gt_of = fopen("gt.tmp.packed","rb");
+    FILE *s_gt_of = fopen("s.gt.tmp.packed","wb");
 
-    /*
     while ( priq_top(q, &p) != NULL ) {
         int *d = priq_pop(q, &p);
-
 
         uint32_t start = 0;
         if (*d != 0)
@@ -181,57 +172,97 @@ int main(int argc, char **argv)
         fread(buf, sizeof(char), len, md_of);
         buf[len] = '\0';
 
-        printf("%d\t%u\t%u\t%s\n", *d, start, len, buf);
-        
+        fseek(gt_of, (*d)*num_ind_ints*sizeof(uint32_t), SEEK_SET);
+        fread(packed_ints, sizeof(uint32_t), num_ind_ints, gt_of);
+        fwrite(packed_ints, sizeof(uint32_t), num_ind_ints,s_gt_of);
 
+        fprintf(md_out, "%s\n", buf);
     }
-    */
 
+    fclose(md_out);
     fclose(md_of);
+    fclose(gt_of);
+    fclose(s_gt_of);
 
 
-    printf("sum:%u\n\n", t_sum);
+    /*
+     * In a packed-int variant-major matrix there will be a num_vars
+     * number of rows, and a num_inds number of values packed into
+     * num_inds_ints number of intergers.  For examples, 16 rows of 16 values
+     * will be 16 ints, where each int encodes 16 values.
+     *
+     */
+    
+    uint32_t num_var_ints = 1 + ((num_vars - 1) / 16);
 
-    double t = t_bcf_read +
-               t_bcf_dup +
-               t_bcf_unpack +
-               t_bcf_get_genotypes +
-               t_bcf_hdr_nsamples +
-               t_q +
-               t_get_md +
-               t_md_write +
-               t_pack;
-    printf(
-           "t_bcf_read:%lu %f\n"
-           "t_bcf_dup:%lu %f\n"
-           "t_bcf_unpack:%lu %f\n"
-           "t_get_md:%lu %f\n"
-           "t_md_write:%lu %f\n"
-           "t_bcf_get_genotypes:%lu %f\n"
-           "t_bcf_hdr_nsamples:%lu %f\n"
-           "t_pack:%lu %f\n"
-           "t_q:%lu %f\n"
-           "t_write:%lu %f\n",
-           t_bcf_read,
-           t_bcf_read/t,
-           t_bcf_dup,
-           t_bcf_dup/t,
-           t_bcf_unpack,
-           t_bcf_unpack/t,
-           t_get_md,
-           t_get_md/t,
-           t_md_write,
-           t_md_write/t,
-           t_bcf_get_genotypes,
-           t_bcf_get_genotypes/t,
-           t_bcf_hdr_nsamples,
-           t_bcf_hdr_nsamples/t,
-           t_pack,
-           t_pack/t,
-           t_q,
-           t_q/t,
-           t_write,
-           t_write/t);
+    uint32_t *I_data = (uint32_t *)calloc(num_var_ints*16,sizeof(uint32_t));
+    uint32_t **I = (uint32_t **)malloc(16*sizeof(uint32_t*));
+    for (i = 0; i < 16; ++i)
+        I[i] = I_data + i*num_var_ints;
+    uint32_t I_i = 0, I_int_i = 0;
+
+    uint32_t v;
+
+    s_gt_of = fopen("s.gt.tmp.packed","rb");
+    FILE *rs_gt_of = fopen("r.s.gt.tmp.packed","wb");
+
+    fwrite(&num_vars, sizeof(uint32_t), 1, rs_gt_of);
+    fwrite(&num_inds, sizeof(uint32_t), 1, rs_gt_of);
+     
+    /* 
+     * we need to loop over the columns in the v-major file.
+     * There are num_vars rows, and num_ind_ints 16-ind packed columns
+     *
+     * In this loop :
+     *  i: cols in var-major form, rows in ind-major form
+     *  j: rows in var-major form, cols in ind-major form
+     */
+
+
+    uint32_t num_inds_to_write = num_inds;
+    for (i = 0; i < num_ind_ints; ++i) { // loop over each int col
+        for (j = 0; j < num_vars; ++j) { // loop over head row in that col
+            // skip to the value at the row/col
+            fseek(s_gt_of, 
+                  j*num_ind_ints*sizeof(uint32_t) + //row
+                  i*sizeof(uint32_t), //col
+                  SEEK_SET);
+
+            fread(&v, sizeof(uint32_t), 1, s_gt_of);
+
+            // one int corresponds to a col of 16 two-bit values
+            // two_bit_i will move across the cols
+            for (two_bit_i = 0; two_bit_i < 16; ++two_bit_i) {
+                I[two_bit_i][I_i] += ((v >> (30 - 2*two_bit_i)) & 3) << 
+                                     (30 - 2*I_int_i);
+            }
+            I_int_i += 1;
+
+            if (I_int_i == 16) {
+                I_i += 1;
+                I_int_i = 0;
+            }
+        }
+
+        if (num_inds_to_write >= 16) {
+            fwrite(I_data,
+                   sizeof(uint32_t),
+                   num_var_ints*16,
+                   rs_gt_of);
+            num_inds_to_write -= 16;
+        } else {
+            fwrite(I_data,
+                   sizeof(uint32_t),
+                   num_var_ints*num_inds_to_write,
+                   rs_gt_of);
+        }
+        memset(I_data, 0, num_var_ints*16*sizeof(uint32_t));
+        I_int_i = 0;
+        I_i = 0;
+    }
+
+    fclose(s_gt_of);
+    fclose(rs_gt_of);
 
     free(md_index);
     free(packed_ints);
