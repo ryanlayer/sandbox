@@ -99,3 +99,11 @@ h5_cmprss: h5_cmprss.c
 	    -lhdf5 -lz -lsz \
 	    -o h5_cmprss \
 	    h5_cmprss.c
+
+sql_ped: sql_ped.c
+	gcc -o sql_ped \
+ 		-Isqlite-amalgamation-3080100 \
+		sql_ped.c \
+		sqlite-amalgamation-3080100/sqlite3.c
+
+
