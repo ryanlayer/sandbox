@@ -3,7 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 #include <sys/time.h>
+
 
 static struct timeval _start, _stop;
 
@@ -67,10 +69,13 @@ int main(int argc, char **argv)
     f = fopen(".tmp.zlib_test.c", "rb");
     start();
     fread(c_in, c_size, 1, f);
-    r = uncompress((Bytef *)d, &u_size, (Bytef *)c_in, c_size);
-    assert(r == Z_OK);
     stop();
     unsigned long c_read_time = report();
+    start();
+    r = uncompress((Bytef *)d, &u_size, (Bytef *)c_in, c_size);
+    stop();
+    unsigned long d_time = report();
+    assert(r == Z_OK);
     fclose(f);
 
 
@@ -87,8 +92,13 @@ int main(int argc, char **argv)
         }
     }
 
-    printf("u:%lu\tc:%lu\n", u_size, c_size);
-    printf("u:%lu\tc:%lu\n", u_read_time, c_read_time);
+    printf("u:%lu\tc:%lu\t%f\n", u_size,
+                                 c_size,
+                                 ((float)u_size)/((float)c_size));
+    printf("u:%lu\tr:%lu\td:%lu\n", u_read_time,
+                                 c_read_time,
+                                 d_time);
+
 
     return 0;
 }
