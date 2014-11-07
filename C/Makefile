@@ -107,3 +107,5 @@ sql_ped: sql_ped.c
 		sqlite-amalgamation-3080100/sqlite3.c
 
 
+zlib_test: zlib_test.c
+	gcc -o zlib_test zlib_test.c -lz
