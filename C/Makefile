@@ -106,6 +106,30 @@ sql_ped: sql_ped.c
 		sql_ped.c \
 		sqlite-amalgamation-3080100/sqlite3.c
 
-
 zlib_test: zlib_test.c
-	gcc -o zlib_test zlib_test.c -lz
+	gcc -O3 -o zlib_test zlib_test.c -lz
+
+lz4_test: lz4_test.c
+	gcc -O3 -o lz4_test \
+	    -I/Users/rl6sf/src/lz4-r123 \
+	    -L/Users/rl6sf/src/lz4-r123 \
+	    	/Users/rl6sf/src/lz4-r123/lz4.c \
+		lz4_test.c
+
+bcf_by_line: bcf_by_line.c
+	gcc -g \
+	    	-I ~/src/htslib \
+	    	-o bcf_by_line \
+		bcf_by_line.c \
+		-lz timer.c -DSAMTOOLS=1 ~/src/htslib/libhts.a
+
+time_read_read_dc: time_read_read_dc.c
+	gcc -g -o time_read_read_dc timer.c time_read_read_dc.c -lz
+
+vcf_format_test: vcf_format_test.c
+	gcc -g -I ~/src/htslib -o vcf_format_test vcf_format_test.c \
+	    ~/src/htslib/hts.c -lz \
+	    -DSAMTOOLS=1 ~/src/htslib/libhts.a
+
+buf_test: buf_test.c
+	gcc -g -o buf_test buf_test.c -lz
