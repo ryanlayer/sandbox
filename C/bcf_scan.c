@@ -37,7 +37,7 @@ int main(int argc, char **argv)
         bgzf_seek(gzfp, offset, SEEK_SET);
 
     fprintf(stdout,
-            "bgzf_tell:%lld\tblock_address:%lld\tblock_offset:%d\n",
+            "bgzf_tell:%lld\tblock_address:%lld\tblock_offset:%d\t",
             bgzf_tell(gzfp),
             gzfp->block_address,
             gzfp->block_offset);
@@ -48,10 +48,11 @@ int main(int argc, char **argv)
         vcf_format1(hdr, line, &str);
         fprintf(stdout, "%s", str.s);
         fprintf(stdout,
-                "bgzf_tell:%lld\tblock_address:%lld\tblock_offset:%d\n",
+                "bgzf_tell:%lld\tblock_address:%lld\tblock_offset:%d\t",
                 bgzf_tell(gzfp),
                 gzfp->block_address,
                 gzfp->block_offset);
         str.l = 0;
     }
-}
+    fprintf(stdout, "\n");
+
